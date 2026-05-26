@@ -1,17 +1,27 @@
-research_task:
+extraction_task:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
+    Use the ICD11 Fetcher tool to search for the medical entity: '{target_disease}'.
+    Fetch all available medical data, codes, definitions, and symptoms.
   expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+    A clean summary of the disease '{target_disease}' including its ICD-11 code, title, official definition, and typical symptoms.
+  agent: medical_extractor
 
-reporting_task:
+generation_task:
   description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    Using the ICD-11 data provided by the extractor for '{target_disease}', generate a dataset entry in English.
+    Create TWO variations of descriptions:
+    1. A 'colloquial patient description' where a real person describes these symptoms.
+    2. A 'formal clinical note' written by a doctor.
+    Do NOT mention the exact name of the disease or the ICD code inside the generated text itself.
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    A draft containing the patient's description and the doctor's clinical note, detailing the symptoms.
+  agent: clinical_generator
+
+validation_task:
+  description: >
+    Review the generated patient and doctor descriptions for '{target_disease}'. Perform a diagnostic audit to ensure the symptoms match the disease.
+    Format the final output strictly into the requested DatasetEntry structure.
+  expected_output: >
+    A structured dataset entry containing the icd11_code, disease_name, and the two text descriptions.
+  agent: medical_critic
+  output_file: medical_dataset_entry.json

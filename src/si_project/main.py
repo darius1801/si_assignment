@@ -2,39 +2,89 @@
 import sys
 import warnings
 
-from datetime import datetime
-
 from si_project.crew import SiProject
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
-
-# This main file is intended to be a way for you to run your
-# crew locally, so refrain from adding unnecessary logic into this file.
-# Replace with inputs you want to test with, it will automatically
-# interpolate any tasks and agents information
 
 def run():
     """
     Run the crew.
     """
-    inputs = {
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year)
-    }
+    # Lista extinsă de boli pentru generarea dataset-ului
+    diseases = [
+        #{'target_disease': 'tuberculosis'},
+        #{'target_disease': 'migraine'},
+        #{'target_disease': 'type 2 diabetes mellitus'},
+        {'target_disease': 'essential hypertension'},
+        {'target_disease': 'asthma'},
+        {'target_disease': 'coronary artery disease'},
+        {'target_disease': 'rheumatoid arthritis'},
+        {'target_disease': 'hypothyroidism'},
+        {'target_disease': 'chronic obstructive pulmonary disease'},
+        {'target_disease': 'alzheimer disease'},
+        {'target_disease': 'parkinson disease'},
+        {'target_disease': 'major depressive disorder'},
+        {'target_disease': 'generalized anxiety disorder'},
+        {'target_disease': 'schizophrenia'},
+        {'target_disease': 'bipolar disorder'},
+        {'target_disease': 'celiac disease'},
+        {'target_disease': 'crohn disease'},
+        {'target_disease': 'ulcerative colitis'},
+        {'target_disease': 'multiple sclerosis'},
+        {'target_disease': 'psoriasis'},
+        {'target_disease': 'endometriosis'}
+    ]
 
     try:
-        SiProject().crew().kickoff(inputs=inputs)
+        import os
+        import json
+        
+        output_file = 'medical_dataset.json'
+        crew_instance = SiProject().crew()
+        
+        print(f"\n=== STARTING DATASET GENERATION FOR {len(diseases)} DISEASES ===")
+        
+        # Procesam boala cu boala si salvam imediat fiecare rezultat
+        for idx, disease_input in enumerate(diseases):
+            disease_name = disease_input['target_disease']
+            print(f"\n[{idx+1}/{len(diseases)}] Se proceseaza: {disease_name}...")
+            
+            # Rulam workflow-ul CrewAI fix pentru aceasta boala
+            result = crew_instance.kickoff(inputs=disease_input)
+            
+            # Citim dataset-ul curent
+            existing_data = []
+            if os.path.exists(output_file):
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    try:
+                        existing_data = json.load(f)
+                    except json.JSONDecodeError:
+                        existing_data = []
+                        
+            # Extragem datele Pydantic si adaugam la lista
+            if hasattr(result, 'pydantic') and result.pydantic:
+                data_dict = json.loads(result.pydantic.model_dump_json())
+                existing_data.append(data_dict)
+                
+                # Rescriem instant fisierul cu noul item
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(existing_data, f, indent=4, ensure_ascii=False)
+                    
+                print(f"-> SALVAT IN JSON: {disease_name}. Total inregistrari curente: {len(existing_data)}")
+            else:
+                print(f"-> EROARE: Nu s-a putut parsa formatul final pentru {disease_name}.")
+                
+        print("\n=== DATASET GENERATION FULLY COMPLETED ===")
+                
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
-
 
 def train():
     """
     Train the crew for a given number of iterations.
     """
     inputs = {
-        "topic": "AI LLMs",
-        'current_year': str(datetime.now().year)
+        "target_disease": "tuberculosis"
     }
     try:
         SiProject().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
@@ -57,8 +107,7 @@ def test():
     Test the crew execution and returns the results.
     """
     inputs = {
-        "topic": "AI LLMs",
-        "current_year": str(datetime.now().year)
+        "target_disease": "tuberculosis"
     }
 
     try:
@@ -67,28 +116,5 @@ def test():
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
 
-def run_with_trigger():
-    """
-    Run the crew with trigger payload.
-    """
-    import json
-
-    if len(sys.argv) < 2:
-        raise Exception("No trigger payload provided. Please provide JSON payload as argument.")
-
-    try:
-        trigger_payload = json.loads(sys.argv[1])
-    except json.JSONDecodeError:
-        raise Exception("Invalid JSON payload provided as argument")
-
-    inputs = {
-        "crewai_trigger_payload": trigger_payload,
-        "topic": "",
-        "current_year": ""
-    }
-
-    try:
-        result = SiProject().crew().kickoff(inputs=inputs)
-        return result
-    except Exception as e:
-        raise Exception(f"An error occurred while running the crew with trigger: {e}")
+if __name__ == "__main__":
+    run()
